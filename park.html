@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<head><title>parking</title></head>
+<body>
+    <script>
+        function max(a, b) {
+            return a > b ? a : b;
+        }
+        class Interval {
+            constructor(start, end, mark) {
+                this.start = start;
+                this.end = end;
+                this.mark = mark;
+            }
+            contains(item) {
+                return this.start <= item && item <= this.end;
+            }
+            park(item) {
+                let out = this.start - 1;
+                if (item < this.mark) {
+                    this.start -= 1;
+                } else {
+                    this.end += 1;
+                    out = this.end;
+                }
+                this.mark = item;
+                return out;
+            }
+        }
+        class ParkingLot {
+            constructor(cars = null) {
+                this.intervals = [];
+                this.word = [];
+                this.isParkingWord = true;
+                this.park(cars);
+            }
+            copy() {
+                return new ParkingLot(this.word);
+            }
+            park(cars) {
+                if (cars == null) {
+                    return;
+                }
+                if (typeof cars === 'number') {
+                    this.parkSingleCar(cars);
+                } else {
+                    for (let car of cars) {
+                        this.parkSingleCar(car);
+                    }
+                }
+            }
+            isOmega() {
+                return this.intervals.length === 1 && this.intervals[0].start === 1;
+            }
+            parkSingleCar(car) {
+                if (car == null) {
+                    return;
+                }
+                this.word.push(car);
+                let prevInterval = null;
+                let nextInterval = null;
+                let interval = null;
+                let i = 0;
+                for (i = 0; i < this.intervals.length; i++) {
+                    interval = this.intervals[i];
+                    prevInterval = (i == 0) ? null : this.intervals[i-1];
+                    nextInterval = (i == this.intervals.length - 1) ? null : this.intervals[i+1];
+                    if (interval.start > car) {
+                        nextInterval = interval;
+                        break;
+                    }
+                    if (interval.contains(car)) {
+                        let loc = interval.park(car);
+                        if (nextInterval != null && interval.end + 1 == nextInterval.start) {
+                            interval.end = nextInterval.end;
+                            this.intervals.splice(i+1, 1);
+                        }
+                        if (prevInterval != null && interval.start == prevInterval.end + 1) {
+                            interval.start = prevInterval.start;
+                            this.intervals.splice(i-1, 1);
+                        }
+                        return loc;
+                    }
+                    if (i == this.intervals.length - 1) {
+                        prevInterval = this.intervals[this.intervals.length - 1];
+                        i += 1;
+                        break;
+                    }
+                }
+                interval = new Interval(car, car, car);
+                this.intervals.splice(i, 0, interval);
+                if (nextInterval != null && interval.end + 1 == nextInterval.start) {
+                    interval.end = nextInterval.end;
+                    this.intervals.splice(i+1, 1);
+                }
+                if (prevInterval != null && interval.start == prevInterval.end + 1) {
+                    interval.start = prevInterval.start;
+                    this.intervals.splice(i-1, 1);
+                }
+                return car;
+            }
+        }
+        function swap(w, i, j) {
+            var temp;
+            i -= 1;
+            j -= 1;
+            temp = w[i];
+            w[i] = w[j];
+            w[j] = temp;
+            return w;
+        }
+        function get_descents(w) {
+            var out;
+            out = [];
+            for (var i = 0; i < w.length - 1; i += 1) {
+                if (w[i] > w[i + 1]) {
+                out.push(i + 1);
+                }
+            }
+            return out;
+        }
+        function l(perm) {
+            let out = 0;
+            for (let i = 0; i < perm.length; i++) {
+                for (let j = i; j < perm.length; j++) {
+                    if (perm[i] > perm[j]) {
+                        out += 1;
+                    }
+                }
+            }
+            return out;
+        }
+        function makeParkingReducedWordTree2(w, lot = null, permLength = -1) {
+            var newLot, out, wSwitch, wSwitchTree;
+            if (permLength === -1) {
+                permLength = l(w);
+            }
+            if (lot === null) {
+                lot = new ParkingLot();
+            }
+            out = {
+                "perm": w,
+                "word": [],
+                "tree": []
+            };
+            let descents = get_descents(w);
+            for (var i = 0; i < descents.length; i++) {
+                let des = descents[i];
+                newLot = lot.copy();
+                newLot.park(des);
+                if (newLot.intervals[0].start < 1 || newLot.intervals.slice(-1)[0].end > permLength) {
+                    continue;
+                }
+                wSwitch = swap(w.slice(), des, des + 1);
+                wSwitchTree = makeParkingReducedWordTree2(wSwitch, newLot, permLength);
+                if (get_descents(wSwitch).length === 0 || wSwitchTree["tree"].length > 0) {
+                    out["tree"].push([des, wSwitchTree["tree"]]);
+                }
+            }
+            return out;
+        }
+        function swap1(perm, des) {
+            let temp = perm[des];
+            perm[des] = perm[des + 1];
+            perm[des + 1] = temp;
+            return perm;
+        }
+        function calcPermGivenRealWord(perm, realWord) {
+            console.log("calcing");
+            for (let i = 0; i < realWord.length; i++) {
+                perm = swap1(perm, realWord[i] - 1);
+            }
+            return perm;
+        }
+        function calcRealWord(tree, word) {
+            console.log("calcRealWord, tree: ");
+            console.log(tree);
+            let realWord = [];
+            for (let i = 0; i < word.length; i++) {
+                realWord.push(tree[word[i]][0]);
+                tree = tree[word[i]][1];
+            }
+            return realWord;
+        }
+        function treeLength(tree) {
+            let out = tree.length;
+            for (let i = 0; i < tree.length; i++) {
+                out += treeLength(tree[i][1]);
+            }
+            return out;
+        }
+        function drawRothe(div) {
+            console.log(div);
+            rotheData = JSON.parse(div.getAttribute("data-rothe"));
+            let tree = rotheData.tree;
+            let word = rotheData.word;
+            let realWord = calcRealWord(tree, word);
+            console.log("word: " + String(word));
+            console.log("realWord: " + String(realWord));
+            let w = calcPermGivenRealWord(rotheData.perm.slice(), realWord);
+            console.log(w);
+            let currTreeLoc = tree;
+            for (let i = 0; i < word.length; i++) {
+                currTreeLoc = currTreeLoc[word[i]][1];
+            }
+            let rothediag = "<span class='diagram'>"
+            for (let i = 1; i <= w.length; i++) {
+                rothediag += "<span>"
+                for (let j = 1; j <= w.length; j++) {
+                    if (j > w.length || i > w.length) {
+                        rothediag += "  "
+                    } else if (j == w[i-1]) {
+                        rothediag += "● "
+                    } else if (j > w[i-1] || w.slice(0, i-1).includes(j)) {
+                        rothediag += ". "
+                    } else {
+                        rothediag += "▢ "
+                    }
+                }
+                rothediag += "</span></br>"
+            }
+            rothediag += "</span>"
+            let lot = new ParkingLot(realWord);
+            let lotStr = "<span class='lot'>";
+            let bound = rotheData.perm.length;
+            if (lot.intervals.length > 0) {
+                bound = max(lot.intervals[lot.intervals.length - 1].end, bound);
+            }
+            for (let i = 1; i <= bound; i++) {
+                let foundI = false;
+                for (let j = 0; j < lot.intervals.length; j++) {
+                    console.log(JSON.stringify(lot.intervals));
+                    console.log(JSON.stringify(lot.intervals[j]));                    
+                    if (lot.intervals[j].contains(i)) {
+                        if (lot.intervals[j].mark == i) {
+                            lotStr += "🅿️";
+                        } else {
+                            lotStr += "■";
+                        }
+                        foundI = true;
+                        break;
+                    }
+                }
+                if (!foundI) {
+                    lotStr += ".";
+                }
+                lotStr += "</br>"
+            }
+            lotStr += "</span>";
+            div.innerHTML = rothediag + lotStr;
+            let focused = false;
+            for (let i = 0; i < currTreeLoc.length; i++) {
+                treeElem = currTreeLoc[i];
+                treeElemSpan = div.children[0].children[2*(treeElem[0] - 1)]
+                treeElemSpan.classList.add("green");
+                treeElemSpan.setAttribute("i", Number(i));
+                treeElemSpan.setAttribute("tabindex","0");
+                treeElemSpan.addEventListener('keydown', function (e) {
+                    console.log("yo");
+                    console.log(e.keyCode);
+                    if (e.keyCode === 13) {
+                        addToWord(e)
+                    }
+                })
+                treeElemSpan.onclick = addToWord;
+                if (!focused) {
+                    treeElemSpan.focus();
+                    focused = true;
+                }
+            }
+        }
+        function addToWord(event) {
+            let i = event.target.getAttribute("i");
+            let rothe = event.target.parentElement.parentElement;
+            let currData = JSON.parse(rothe.getAttribute("data-rothe"));
+            currData.word.push(Number(i));
+            rothe.setAttribute("data-rothe", JSON.stringify(currData));
+            drawRothe(rothe);
+        }
+        function logPermutation() {
+            event.preventDefault(); // Prevent form submission from reloading the page
+            let permutationInput = document.getElementById('permutation').value;
+            document.getElementById('permutation').value = "";
+            let cleanInput = permutationInput.replace(/\[|\]|\./g, ',').replace(/\s+/g, ',');
+            let cleanInputArr = cleanInput.split(',');
+            let permutationArray = [];
+            for (let i = 0; i < cleanInputArr.length; i++) {
+                if (cleanInputArr[i] !== '' && !isNaN(Number(cleanInputArr[i]))) {
+                   permutationArray.push(Number(cleanInputArr[i])) 
+                }
+            }
+            console.log(permutationArray);
+            dataRothe = JSON.stringify(makeParkingReducedWordTree2(permutationArray))
+            console.log(dataRothe);
+            let div = document.createElement("div");
+            div.classList.add("rothe");
+            div.setAttribute("data-rothe", dataRothe);
+            document.getElementById("rotheContainer").prepend(div);
+            drawRothe(div);
+        }
+    </script>
+    <h1>Parking Reduced Words Visualizer</h1>
+    <form onsubmit="logPermutation()">
+        <label for="permutation">Enter a permutation:</label>
+        <input type="text" id="permutation" name="permutation" placeholder="[3,1,2,4]" required>
+        <button type="submit">Submit</button>
+    </form>
+    <div id="rotheContainer"></div>
+    <div class="rothe" data-rothe='{"perm": [1, 10, 11, 2, 3, 4, 5, 6, 7, 8, 9], "word": [], "tree": [[3, [[2, [[4, [[5, [[6, [[7, [[8, [[9, [[10, [[3, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]]]]]]]]]], [4, [[2, [[3, [[5, [[6, [[7, [[8, [[9, [[10, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]]]]]], [5, [[6, [[7, [[8, [[9, [[10, [[3, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]]]]]]]], [5, [[2, [[3, [[4, [[6, [[7, [[8, [[9, [[10, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]], [6, [[7, [[8, [[9, [[10, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]]]], [6, [[7, [[8, [[9, [[10, [[3, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]]]]]], [6, [[2, [[3, [[4, [[5, [[7, [[8, [[9, [[10, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]], [7, [[8, [[9, [[10, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]], [7, [[8, [[9, [[10, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]], [7, [[8, [[9, [[10, [[3, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]]]], [7, [[2, [[3, [[4, [[5, [[6, [[8, [[9, [[10, [[7, [[8, [[9, []]]]]]]]]]]]]], [8, [[9, [[10, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]], [8, [[9, [[10, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]], [8, [[9, [[10, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]], [8, [[9, [[10, [[3, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]], [8, [[2, [[3, [[4, [[5, [[6, [[7, [[9, [[10, [[8, [[9, []]]]]]]]]], [9, [[10, [[7, [[8, [[9, []]]]]]]]]]]], [9, [[10, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]], [9, [[10, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]], [9, [[10, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]], [9, [[10, [[3, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]], [9, [[2, [[3, [[4, [[5, [[6, [[7, [[8, [[10, [[9, []]]]]], [10, [[8, [[9, []]]]]]]], [10, [[7, [[8, [[9, []]]]]]]]]], [10, [[6, [[7, [[8, [[9, []]]]]]]]]]]], [10, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]], [10, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]], [10, [[3, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]}'></div>
+    <script>
+        window.onload = function() {
+            let rothes = document.getElementsByClassName("rothe");
+            for (let i = 0; i < rothes.length; i++) {
+                console.log("drawing")
+                drawRothe(rothes[i]);
+            }
+        };
+    </script>
+    <style>
+        body {
+            font-family: monospace;
+        }
+        .green {
+            background-color: green;
+            cursor: pointer;
+        }
+        .rothe {
+            padding: 10px;
+            width: 250px;
+            height: 250px;
+        }
+        .diagram {
+            float: left;
+        }
+        .lot {
+            float: right;
+        }
+        span {
+            margin-right: 15px;
+        }
+    </style>
+</body>
