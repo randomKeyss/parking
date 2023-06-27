@@ -166,15 +166,12 @@
             return perm;
         }
         function calcPermGivenRealWord(perm, realWord) {
-            console.log("calcing");
             for (let i = 0; i < realWord.length; i++) {
                 perm = swap1(perm, realWord[i] - 1);
             }
             return perm;
         }
         function calcRealWord(tree, word) {
-            console.log("calcRealWord, tree: ");
-            console.log(tree);
             let realWord = [];
             for (let i = 0; i < word.length; i++) {
                 realWord.push(tree[word[i]][0]);
@@ -190,16 +187,12 @@
             return out;
         }
         function drawRothe(div) {
-            console.log(div);
             rotheData = JSON.parse(div.getAttribute("data-rothe"));
             let tree = rotheData.tree;
             let word = rotheData.word;
             let endWord = rotheData.endWord;
             let realWord = calcRealWord(tree, word);
-            console.log("word: " + String(word));
-            console.log("realWord: " + String(realWord));
             let w = calcPermGivenRealWord(rotheData.perm.slice(), realWord);
-            console.log(w);
             let currTreeLoc = tree;
             for (let i = 0; i < word.length; i++) {
                 currTreeLoc = currTreeLoc[word[i]][1];
@@ -241,9 +234,7 @@
             }
             for (let i = 1; i <= bound; i++) {
                 let foundI = false;
-                for (let j = 0; j < lot.intervals.length; j++) {
-                    console.log(JSON.stringify(lot.intervals));
-                    console.log(JSON.stringify(lot.intervals[j]));                    
+                for (let j = 0; j < lot.intervals.length; j++) {              
                     if (lot.intervals[j].contains(i)) {
                         if (lot.intervals[j].mark == i) {
                             lotStr += "🅿️";
@@ -294,9 +285,7 @@
             drawRothe(rothe);
         }
         function left(event) {
-            console.log("left");
             let div = event.target.parentElement.parentElement.parentElement;
-            console.log(div);
             let dataRothe = JSON.parse(div.getAttribute("data-rothe"))
             if (dataRothe.word.length > 0) {
                 dataRothe.endWord.unshift(dataRothe.word.pop());
@@ -306,7 +295,6 @@
             event.target.focus();
         }
         function right(event) {
-            console.log("right");
             let div = event.target.parentElement.parentElement.parentElement;
             let dataRothe = JSON.parse(div.getAttribute("data-rothe"))
             if (dataRothe.endWord.length > 0) {
@@ -315,10 +303,28 @@
             div.setAttribute("data-rothe", JSON.stringify(dataRothe));
             drawRothe(div);
         }
+        function lehmerToPermutation(code) {
+            const out = [];
+            for (let i = 0; i < code.length; i++) {
+                let currNum = code[i] + 1;
+                for (let j = 0; j < out.length; j++) {
+                if (out[j] <= currNum) {
+                    currNum += 1;
+                }
+                }
+                out.push(currNum);
+            }
+            for (let i = 1; i < Math.max(...out); i++) {
+                if (!out.includes(i)) {
+                out.push(i);
+                }
+            }
+            return out;
+        }
         function logPermutation() {
             event.preventDefault(); // Prevent form submission from reloading the page
-            let permutationInput = document.getElementById('permutation').value;
-            document.getElementById('permutation').value = "";
+            let permutationInput = document.getElementById('input-value').value;
+            document.getElementById('input-value').value = "";
             let cleanInput = permutationInput.replace(/\[|\]|\./g, ',').replace(/\s+/g, ',');
             let cleanInputArr = cleanInput.split(',');
             let permutationArray = [];
@@ -327,9 +333,12 @@
                    permutationArray.push(Number(cleanInputArr[i])) 
                 }
             }
-            console.log(permutationArray);
+            console.log(permutationArray)
+            if (document.getElementById("lehmer-type").checked) {
+                permutationArray = lehmerToPermutation(permutationArray);
+            }
+            console.log(permutationArray)
             dataRothe = JSON.stringify(makeParkingReducedWordTree(permutationArray))
-            console.log(dataRothe);
             let div = document.createElement("span");
             div.classList.add("rothe");
             div.setAttribute("data-rothe", dataRothe);
@@ -339,16 +348,21 @@
     </script>
     <h1>Parking Reduced Words Visualizer</h1>
     <form onsubmit="logPermutation()">
-        <label for="permutation">Enter a permutation:</label>
-        <input type="text" id="permutation" name="permutation" placeholder="[3,1,2,4]" required>
+        <label for="input-type">Enter type:</label>
+        <input type="radio" id="permutation-type" name="input-type" value="permutation" checked>
+        <label for="permutation-type">Permutation</label>
+        <input type="radio" id="lehmer-type" name="input-type" value="lehmer">
+        <label for="lehmer-type">Lehmer Code</label>
+        <br>
+        <label for="input-value">Enter value:</label>
+        <input type="text" id="input-value" placeholder="3 1 2 4" required>
         <button type="submit">Submit</button>
-    </form>
+      </form>
     <div id="rotheContainer"></div>
     <script>
         window.onload = function() {
             let rothes = document.getElementsByClassName("rothe");
             for (let i = 0; i < rothes.length; i++) {
-                console.log("drawing")
                 drawRothe(rothes[i]);
             }
         };
