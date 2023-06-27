@@ -129,7 +129,7 @@
             }
             return out;
         }
-        function makeParkingReducedWordTree2(w, lot = null, permLength = -1) {
+        function makeParkingReducedWordTree(w, lot = null, permLength = -1) {
             var newLot, out, wSwitch, wSwitchTree;
             if (permLength === -1) {
                 permLength = l(w);
@@ -140,6 +140,7 @@
             out = {
                 "perm": w,
                 "word": [],
+                "endWord": [],
                 "tree": []
             };
             let descents = get_descents(w);
@@ -151,7 +152,7 @@
                     continue;
                 }
                 wSwitch = swap(w.slice(), des, des + 1);
-                wSwitchTree = makeParkingReducedWordTree2(wSwitch, newLot, permLength);
+                wSwitchTree = makeParkingReducedWordTree(wSwitch, newLot, permLength);
                 if (get_descents(wSwitch).length === 0 || wSwitchTree["tree"].length > 0) {
                     out["tree"].push([des, wSwitchTree["tree"]]);
                 }
@@ -193,6 +194,7 @@
             rotheData = JSON.parse(div.getAttribute("data-rothe"));
             let tree = rotheData.tree;
             let word = rotheData.word;
+            let endWord = rotheData.endWord;
             let realWord = calcRealWord(tree, word);
             console.log("word: " + String(word));
             console.log("realWord: " + String(realWord));
@@ -218,7 +220,19 @@
                 }
                 rothediag += "</span></br>"
             }
-            rothediag += "</span>"
+            leftArrow = "";
+            if (word.length > 0) {
+                leftArrow = "<button onclick=left(event)>←</button>";
+            } else {
+                leftArrow = "<button disabled>←</button>";
+            }
+            rightArrow = "";
+            if (endWord.length > 0) {
+                rightArrow = "<button onclick=right(event)>→</button>"
+            } else {
+                rightArrow = "<button disabled>→</button>"
+            }
+            rothediag += "<div class='buttonHolder'>" + leftArrow + rightArrow + "</div></span>"
             let lot = new ParkingLot(realWord);
             let lotStr = "<span class='lot'>";
             let bound = rotheData.perm.length;
@@ -255,8 +269,6 @@
                 treeElemSpan.setAttribute("i", Number(i));
                 treeElemSpan.setAttribute("tabindex","0");
                 treeElemSpan.addEventListener('keydown', function (e) {
-                    console.log("yo");
-                    console.log(e.keyCode);
                     if (e.keyCode === 13) {
                         addToWord(e)
                     }
@@ -273,8 +285,35 @@
             let rothe = event.target.parentElement.parentElement;
             let currData = JSON.parse(rothe.getAttribute("data-rothe"));
             currData.word.push(Number(i));
+            if (currData.endWord.length > 0 && currData.endWord[0] == i) {
+                currData.endWord.shift();
+            } else {
+                currData.endWord = [];
+            }
             rothe.setAttribute("data-rothe", JSON.stringify(currData));
             drawRothe(rothe);
+        }
+        function left(event) {
+            console.log("left");
+            let div = event.target.parentElement.parentElement.parentElement;
+            console.log(div);
+            let dataRothe = JSON.parse(div.getAttribute("data-rothe"))
+            if (dataRothe.word.length > 0) {
+                dataRothe.endWord.unshift(dataRothe.word.pop());
+            }
+            div.setAttribute("data-rothe", JSON.stringify(dataRothe));
+            drawRothe(div);
+            event.target.focus();
+        }
+        function right(event) {
+            console.log("right");
+            let div = event.target.parentElement.parentElement.parentElement;
+            let dataRothe = JSON.parse(div.getAttribute("data-rothe"))
+            if (dataRothe.endWord.length > 0) {
+                dataRothe.word.push(dataRothe.endWord.shift());
+            }
+            div.setAttribute("data-rothe", JSON.stringify(dataRothe));
+            drawRothe(div);
         }
         function logPermutation() {
             event.preventDefault(); // Prevent form submission from reloading the page
@@ -289,9 +328,9 @@
                 }
             }
             console.log(permutationArray);
-            dataRothe = JSON.stringify(makeParkingReducedWordTree2(permutationArray))
+            dataRothe = JSON.stringify(makeParkingReducedWordTree(permutationArray))
             console.log(dataRothe);
-            let div = document.createElement("div");
+            let div = document.createElement("span");
             div.classList.add("rothe");
             div.setAttribute("data-rothe", dataRothe);
             document.getElementById("rotheContainer").prepend(div);
@@ -305,7 +344,6 @@
         <button type="submit">Submit</button>
     </form>
     <div id="rotheContainer"></div>
-    <div class="rothe" data-rothe='{"perm": [1, 10, 11, 2, 3, 4, 5, 6, 7, 8, 9], "word": [], "tree": [[3, [[2, [[4, [[5, [[6, [[7, [[8, [[9, [[10, [[3, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]]]]]]]]]], [4, [[2, [[3, [[5, [[6, [[7, [[8, [[9, [[10, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]]]]]], [5, [[6, [[7, [[8, [[9, [[10, [[3, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]]]]]]]], [5, [[2, [[3, [[4, [[6, [[7, [[8, [[9, [[10, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]], [6, [[7, [[8, [[9, [[10, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]]]], [6, [[7, [[8, [[9, [[10, [[3, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]]]]]], [6, [[2, [[3, [[4, [[5, [[7, [[8, [[9, [[10, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]], [7, [[8, [[9, [[10, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]], [7, [[8, [[9, [[10, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]], [7, [[8, [[9, [[10, [[3, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]]]], [7, [[2, [[3, [[4, [[5, [[6, [[8, [[9, [[10, [[7, [[8, [[9, []]]]]]]]]]]]]], [8, [[9, [[10, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]], [8, [[9, [[10, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]], [8, [[9, [[10, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]], [8, [[9, [[10, [[3, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]], [8, [[2, [[3, [[4, [[5, [[6, [[7, [[9, [[10, [[8, [[9, []]]]]]]]]], [9, [[10, [[7, [[8, [[9, []]]]]]]]]]]], [9, [[10, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]], [9, [[10, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]], [9, [[10, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]], [9, [[10, [[3, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]], [9, [[2, [[3, [[4, [[5, [[6, [[7, [[8, [[10, [[9, []]]]]], [10, [[8, [[9, []]]]]]]], [10, [[7, [[8, [[9, []]]]]]]]]], [10, [[6, [[7, [[8, [[9, []]]]]]]]]]]], [10, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]], [10, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]], [10, [[3, [[4, [[5, [[6, [[7, [[8, [[9, []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]}'></div>
     <script>
         window.onload = function() {
             let rothes = document.getElementsByClassName("rothe");
@@ -323,19 +361,23 @@
             background-color: green;
             cursor: pointer;
         }
-        .rothe {
-            padding: 10px;
-            width: 250px;
-            height: 250px;
-        }
         .diagram {
-            float: left;
+            margin-right: 15px;
         }
         .lot {
             float: right;
         }
-        span {
-            margin-right: 15px;
+        .rothe {
+            display: inline-flex;
+            margin: 10px;
+            padding: 5px;
+            background-color: #f5f5f5;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .buttonHolder {
+            text-align: center;
+            margin: 2px;
         }
     </style>
 </body>
